@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>OpenCraft · Animals & Biomes · Ultra Smooth</title>
+  <style>
+    /* --- identical core styles, enhanced --- */
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Arial', sans-serif; }
+    #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 30% 30%, #0e1a26, #03070a); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; transition: opacity 1.5s ease; pointer-events: none; }
+    #canvas-3d-title { width: 100%; height: 280px; margin-bottom: 10px; }
+    #loading-text { font-size: 32px; font-weight: bold; letter-spacing: 8px; text-transform: uppercase; color: #fff5d1; text-shadow: 0 0 30px #3a9eff; opacity: 0.9; }
+    #owner-credit { font-size: 20px; color: #ccc; margin-top: 5px; }
+    .progress-bar { width: 300px; height: 6px; background: #1e2f3f; border-radius: 10px; margin-top: 25px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: #6eb5ff; transition: width 0.1s; }
+    .fullscreen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0s 0.4s; }
+    .modal { background: #1e2a36; color: #f0f0f0; padding: 30px 40px; border-radius: 32px; max-width: 600px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 2px #4a6c8f inset; border: 1px solid #7fa5c2; }
+    .modal h2 { margin-top: 0; color: #ffd966; text-shadow: 0 2px 5px #00000050; font-size: 28px; }
+    .modal button { background: #4caf50; color: white; border: none; padding: 14px 28px; font-size: 20px; font-weight: bold; border-radius: 60px; cursor: pointer; box-shadow: 0 4px 0 #2e6b31, 0 4px 12px #00b8ff80; transition: 0.08s linear; border: 2px solid #a5d6a5; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 20px; }
+    .modal button:hover { background: #5fcf63; transform: scale(1.02); }
+    .modal button:active { transform: translateY(4px); box-shadow: 0 2px 0 #2e6b31, 0 4px 12px #00b8ff; }
+    .char-selector { display: flex; gap: 25px; justify-content: center; margin: 30px 0; }
+    .char-card { background: #15232e; border-radius: 20px; padding: 20px 15px; width: 140px; border: 2px solid #5a7a9a; cursor: pointer; transition: all 0.1s; box-shadow: 0 6px 0 #0f1a22; }
+    .char-card.selected { border: 4px solid #ffd966; box-shadow: 0 0 20px #ffbb33, 0 4px 0 #0f1a22; transform: scale(1.02); }
+    .char-icon { font-size: 48px; margin-bottom: 10px; }
+    .char-name { font-size: 22px; font-weight: bold; color: #ffd966; }
+    .char-desc { font-size: 14px; opacity: 0.9; margin-top: 8px; }
+    #manual-panel { position: fixed; top: 0; right: 0; width: 340px; height: 100vh; background: rgba(18, 28, 38, 0.95); backdrop-filter: blur(12px); color: #eee; z-index: 1500; padding: 25px 20px; transform: translateX(100%); transition: transform 0.3s ease; border-left: 2px solid #6a8caf; box-shadow: -5px 0 20px rgba(0,0,0,0.5); overflow-y: auto; pointer-events: auto; }
+    #manual-panel.open { transform: translateX(0); }
+    #manual-panel h3 { color: #ffd966; margin-top: 0; font-size: 26px; border-bottom: 2px solid #4a6c8f; padding-bottom: 12px; }
+    #manual-panel h4 { color: #aad0ff; margin: 20px 0 8px; }
+    #manual-panel p, #manual-panel li { line-height: 1.6; font-size: 15px; }
+    #manual-panel ul { padding-left: 20px; }
+    .close-manual { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #fff; font-size: 30px; cursor: pointer; opacity: 0.8; }
+    .close-manual:hover { opacity: 1; }
+    #game-ui { opacity: 0; transition: opacity 0.8s; }
+    #info { position: absolute; top: 20px; left: 20px; color: white; background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 30px; backdrop-filter: blur(4px); pointer-events: none; z-index: 10; }
+    #controls-hint { position: absolute; bottom: 20px; left: 20px; color: #ccc; background: rgba(20,20,20,0.7); padding: 8px 16px; border-radius: 20px; backdrop-filter: blur(4px); pointer-events: none; z-index: 10; }
+    #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 4px; background: white; border: 1.5px solid #222; border-radius: 1px; pointer-events: none; z-index: 5; box-shadow: 0 0 4px black; }
+    #hotbar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(30,30,30,0.85); padding: 12px 24px; border-radius: 40px; backdrop-filter: blur(8px); z-index: 20; }
+    .slot { width: 70px; height: 70px; background: #5a5a5a; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 -3px 0 #2a2a2a, 0 4px 0 #2a2a2a; border: 2px solid #8a8a8a; cursor: pointer; color: white; font-weight: bold; transition: all 0.05s; }
+    .slot.selected { border: 4px solid #ffd966; box-shadow: inset 0 -3px 0 #2a2a2a, 0 4px 0 #2a2a2a, 0 0 20px #ffbb33; transform: scale(1.05); background: #6f6f6f; }
+    .block-preview { width: 48px; height: 48px; border-radius: 6px; border: 2px solid #333; }
+    #block-indicator { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.6); padding: 6px 22px; border-radius: 30px; backdrop-filter: blur(4px); pointer-events: none; z-index: 15; }
+    #fps { position: absolute; top: 20px; right: 20px; color: #ddd; background: rgba(0,0,0,0.4); padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(4px); pointer-events: none; z-index: 10; }
+    #instruction { position: absolute; bottom: 20px; right: 20px; color: #eee; background: rgba(20,20,20,0.7); padding: 12px 20px; border-radius: 20px; backdrop-filter: blur(4px); pointer-events: none; z-index: 10; text-align: right; line-height: 1.6; font-size: 14px; }
+    #mode-panel { position: absolute; top: 80px; left: 20px; display: flex; gap: 12px; z-index: 30; pointer-events: none; }
+    .mode-btn { pointer-events: auto; padding: 12px 24px; font-size: 18px; font-weight: bold; border: none; border-radius: 40px; background: rgba(30,30,30,0.8); backdrop-filter: blur(8px); color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 2px solid #555; transition: all 0.05s; text-transform: uppercase; }
+    .mode-btn.active { border-color: #ffd966; box-shadow: 0 0 20px #ffbb33; transform: scale(1.05); }
+    #mode-status { position: absolute; top: 150px; left: 20px; color: white; background: rgba(0,0,0,0.5); padding: 6px 18px; border-radius: 30px; backdrop-filter: blur(4px); pointer-events: none; z-index: 30; }
+    #options-panel { position: absolute; top: 20px; right: 20px; display: flex; gap: 8px; z-index: 40; background: rgba(20,20,30,0.6); backdrop-filter: blur(8px); padding: 8px 12px; border-radius: 40px; border: 1px solid #6a8caf; }
+    .opt-btn { padding: 8px 16px; font-size: 18px; font-weight: bold; background: rgba(40,40,50,0.8); border: 2px solid #7a9bcb; border-radius: 30px; color: white; cursor: pointer; box-shadow: 0 2px 6px black; transition: 0.05s; }
+    .opt-btn.active { border-color: #ffd966; box-shadow: 0 0 15px #ffbb33; transform: scale(1.02); background: #3a4a6a; }
+    #manual-toggle-btn { position: absolute; bottom: 20px; right: 220px; z-index: 45; background: #3a5a7a; border: 2px solid #aaccff; border-radius: 30px; color: white; padding: 10px 20px; font-weight: bold; cursor: pointer; backdrop-filter: blur(8px); background: rgba(30,40,60,0.8); }
+    #animal-counter { position: absolute; top: 20px; left: 220px; background: rgba(0,0,0,0.5); color: #ffd966; padding: 8px 18px; border-radius: 30px; backdrop-filter: blur(4px); pointer-events: none; z-index: 12; font-weight: bold; }
+  </style>
+  <script type="importmap">
+    {"imports": {"three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <div id="loading-screen">
+    <canvas id="canvas-3d-title" width="800" height="280"></canvas>
+    <div id="loading-text">OpenCraft</div>
+    <div id="owner-credit">by Abhirup Payne</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <div id="disclaimer-overlay" class="fullscreen-overlay">
+    <div class="modal">
+      <h2>⚡ Ultra Smooth + Animals</h2>
+      <div style="font-size:18px; margin:25px 0; background:#0f1a22; padding:20px; border-radius:20px;">
+        ⚠️ Game does not save.<br>
+        <span style="display:block; margin-top:12px;">🐄 Cows · 🐔 Chickens · 🐖 Pigs · 🐑 Sheep · 🌳 Biomes</span>
+      </div>
+      <button id="play-btn">👍 Continue</button>
+    </div>
+  </div>
+
+  <div id="char-select-overlay" class="fullscreen-overlay">
+    <div class="modal" style="max-width:700px;">
+      <h2>🧑 Choose your builder</h2>
+      <div class="char-selector">
+        <div class="char-card" data-char="default">
+          <div class="char-icon">🏃</div>
+          <div class="char-name">Explorer</div>
+          <div class="char-desc">Balanced · Fast</div>
+        </div>
+        <div class="char-card" data-char="speedy">
+          <div class="char-icon">⚡</div>
+          <div class="char-name">Speedy</div>
+          <div class="char-desc">+40% speed<br>+10% jump</div>
+        </div>
+        <div class="char-card" data-char="jumper">
+          <div class="char-icon">🦘</div>
+          <div class="char-name">Jumper</div>
+          <div class="char-desc">+50% jump<br>Smooth swim</div>
+        </div>
+      </div>
+      <button id="start-game-btn">✨ Start Building</button>
+    </div>
+  </div>
+
+  <div id="manual-panel">
+    <button class="close-manual" id="close-manual">&times;</button>
+    <h3>📖 Game Manual</h3>
+    <h4>🎮 Controls</h4>
+    <ul><li><strong>WASD</strong> – Move (fast & smooth)</li><li><strong>Space</strong> – Jump / Swim up</li><li><strong>1–7</strong> – Select block</li><li><strong>Enter / Click</strong> – Break/Create</li><li><strong>Mouse</strong> – Look</li></ul>
+    <h4>🐾 Animals</h4><p>Cows, chickens, pigs and sheep roam the world. They avoid obstacles and wander. You can build pens!</p>
+    <h4>🌲 Biomes & Caves</h4><p>Grass plains, desert patches, forest clusters. Underground caves generate naturally.</p>
+    <h4>💧 Water & Swimming</h4><p>Place water (slot 7). Swim with Space underwater.</p>
+    <h4>👤 Character Traits</h4><p>Your choice affects speed, jump, and swimming.</p>
+  </div>
+
+  <div id="game-ui">
+    <div id="info">🏠 OpenCraft · Living World</div>
+    <!-- ANIMAL COUNTER removed as requested: keep UI element but hide text "14 animals" -->
+    <div id="animal-counter" style="display: none;">🐄 <span id="animal-count">0</span> animals</div>
+    <div id="fps">⚡ FPS: <span id="fps-value">60</span></div>
+    <div id="options-panel">
+      <button class="opt-btn active" id="btn-day">☀️ Day</button>
+      <button class="opt-btn" id="btn-night">🌙 Night</button>
+      <button class="opt-btn" id="btn-clear">✨ Clear</button>
+      <button class="opt-btn" id="btn-rain">🌧️ Rain</button>
+      <button class="opt-btn" id="btn-snow">❄️ Snow</button>
+    </div>
+    <button id="manual-toggle-btn">📘 Manual</button>
+    <div id="crosshair"></div>
+    <div id="block-indicator">👆 <span id="look-block">air</span> <span id="look-coord"></span></div>
+    <div id="controls-hint">🖱️ Click · WASD · Space · 1-7</div>
+    <div id="instruction"><div>🔨 Break / 🧱 Create</div><div>1:Grass 2:Dirt 3:Stone 4:Wood 5:Gold 6:Sand 7:Water</div></div>
+    <div id="hotbar">
+      <div class="slot selected" data-block="grass"><div class="block-preview" style="background:#7c9c3e;"></div><span>1</span></div>
+      <div class="slot" data-block="dirt"><div class="block-preview" style="background:#8b5e3c;"></div><span>2</span></div>
+      <div class="slot" data-block="stone"><div class="block-preview" style="background:#aaa;"></div><span>3</span></div>
+      <div class="slot" data-block="wood"><div class="block-preview" style="background:#8b6b4d;"></div><span>4</span></div>
+      <div class="slot" data-block="gold"><div class="block-preview" style="background:#f5c542;"></div><span>5</span></div>
+      <div class="slot" data-block="sand"><div class="block-preview" style="background:#e0d68a;"></div><span>6</span></div>
+      <div class="slot" data-block="water"><div class="block-preview" style="background:#3a6ea5;"></div><span>7</span></div>
+    </div>
+    <div id="mode-panel">
+      <button class="mode-btn break-btn active" id="mode-break">🔨 Break</button>
+      <button class="mode-btn create-btn" id="mode-create">🧱 Create</button>
+    </div>
+    <div id="mode-status">Mode: <span id="mode-text">Break</span></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+    
+    // ---------- LOADING (unchanged) ----------
+    const loadingCanvas = document.getElementById('canvas-3d-title');
+    const rendererLoad = new THREE.WebGLRenderer({ canvas: loadingCanvas, alpha: true, antialias: true });
+    rendererLoad.setSize(800, 280);
+    const sceneLoad = new THREE.Scene();
+    const cameraLoad = new THREE.PerspectiveCamera(45, 800/280, 0.1, 100);
+    cameraLoad.position.set(0, 1.5, 10); cameraLoad.lookAt(0,0,0);
+    sceneLoad.add(new THREE.AmbientLight(0x404060));
+    const l1 = new THREE.PointLight(0x4da6ff, 1.5); l1.position.set(3,4,5); sceneLoad.add(l1);
+    const l2 = new THREE.PointLight(0xffaa66, 1); l2.position.set(-4,2,6); sceneLoad.add(l2);
+    const cubes = [];
+    "OpenCraft".split('').forEach((ch,i)=>{
+      const geo = new THREE.BoxGeometry(0.7,0.7,0.7);
+      const mat = new THREE.MeshStandardMaterial({ color: [0xffaa66,0x66ccff,0xaaff99,0xff99cc,0xccaa88,0x99ddff,0xffcc66,0xbb99ff,0x88ddbb][i%9], emissive: new THREE.Color(0x224466), emissiveIntensity:0.5 });
+      const mesh = new THREE.Mesh(geo,mat); mesh.position.x=(i-4)*1.1; mesh.position.y=Math.sin(i)*0.3;
+      mesh.userData={baseY:mesh.position.y, phase:i}; sceneLoad.add(mesh); cubes.push(mesh);
+    });
+    let loadProgress=0; const progressFill=document.getElementById('progress-fill'), loadingScreen=document.getElementById('loading-screen'), gameUI=document.getElementById('game-ui'), disclaimerOverlay=document.getElementById('disclaimer-overlay'), charSelectOverlay=document.getElementById('char-select-overlay');
+    function animateLoad(){
+      const t=performance.now()*0.002;
+      cubes.forEach((m,i)=>{ m.rotation.y=Math.sin(t*1.5+i)*0.5; m.rotation.x=Math.sin(t*1.2+i*2)*0.3; m.position.y=m.userData.baseY+Math.sin(t*3+i)*0.2; });
+      rendererLoad.render(sceneLoad,cameraLoad);
+      loadProgress=Math.min(loadProgress+1.8,100); progressFill.style.width=loadProgress+'%';
+      if(loadProgress>=100){ setTimeout(()=>{ loadingScreen.style.opacity='0'; gameUI.style.opacity='1'; setTimeout(()=>{ loadingScreen.style.display='none'; disclaimerOverlay.style.opacity='1'; disclaimerOverlay.style.visibility='visible'; },800); },200); return; }
+      requestAnimationFrame(animateLoad);
+    }
+    animateLoad();
+    
+    // ---------- ENHANCED GAME ----------
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(0xaaccff); scene.fog = new THREE.FogExp2(0xaaccff, 0.0008);
+    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000); camera.position.set(30,30,40);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:"high-performance" }); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,1.5)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; document.body.appendChild(renderer.domElement);
+    
+    const ambientLight = new THREE.AmbientLight(0x556688,0.7); scene.add(ambientLight);
+    const sunLight = new THREE.DirectionalLight(0xfff5e6,1.3); sunLight.position.set(70,100,70); sunLight.castShadow= sunLight.receiveShadow=true; sunLight.shadow.mapSize.width=1024; sunLight.shadow.mapSize.height=1024; const d=80; sunLight.shadow.camera.left=-d; sunLight.shadow.camera.right=d; sunLight.shadow.camera.top=d; sunLight.shadow.camera.bottom=-d; sunLight.shadow.camera.near=1; sunLight.shadow.camera.far=150; sunLight.shadow.bias=-0.0005; scene.add(sunLight);
+    const moonLight = new THREE.DirectionalLight(0xc4d4ff,0.9); moonLight.position.set(-50,80,-50); moonLight.castShadow=moonLight.receiveShadow=true; moonLight.shadow.mapSize.width=512; moonLight.shadow.mapSize.height=512; moonLight.shadow.camera.left=-70; moonLight.shadow.camera.right=70; moonLight.shadow.camera.top=70; moonLight.shadow.camera.bottom=-70; moonLight.visible=false; scene.add(moonLight);
+    const fillLight = new THREE.PointLight(0xccddff,0.5); fillLight.position.set(-40,50,60); scene.add(fillLight);
+    const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(5,16), new THREE.MeshStandardMaterial({color:0xffdd99,emissive:0xffaa33,emissiveIntensity:1.0})); sunMesh.position.set(90,110,80); scene.add(sunMesh);
+    const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(4.5,16), new THREE.MeshStandardMaterial({color:0xe0e0ff,emissive:0xaaccff,emissiveIntensity:0.6})); moonMesh.position.set(-60,80,-70); moonMesh.visible=false; scene.add(moonMesh);
+    const stars = new THREE.Points(new THREE.SphereGeometry(350,32,16), new THREE.PointsMaterial({color:0xffffff,size:0.5})); stars.visible=false; scene.add(stars);
+    
+    let rainParticles, snowParticles;
+    function createRain(){ const c=1600; const g=new THREE.BufferGeometry(); const p=new Float32Array(c*3); for(let i=0;i<c*3;i+=3){ p[i]=(Math.random()-0.5)*300; p[i+1]=Math.random()*60+10; p[i+2]=(Math.random()-0.5)*300; } g.setAttribute('position',new THREE.BufferAttribute(p,3)); return new THREE.Points(g, new THREE.PointsMaterial({color:0xaaccff,size:0.12,transparent:true,opacity:0.4})); }
+    function createSnow(){ const c=1300; const g=new THREE.BufferGeometry(); const p=new Float32Array(c*3); for(let i=0;i<c*3;i+=3){ p[i]=(Math.random()-0.5)*300; p[i+1]=Math.random()*60+10; p[i+2]=(Math.random()-0.5)*300; } g.setAttribute('position',new THREE.BufferAttribute(p,3)); return new THREE.Points(g, new THREE.PointsMaterial({color:0xffffff,size:0.25,transparent:true,opacity:0.6})); }
+    let weatherType='clear';
+    function setWeather(t){ weatherType=t; if(rainParticles){scene.remove(rainParticles); rainParticles=null;} if(snowParticles){scene.remove(snowParticles); snowParticles=null;} if(t==='rain'){ rainParticles=createRain(); scene.add(rainParticles); } if(t==='snow'){ snowParticles=createSnow(); scene.add(snowParticles); } document.querySelectorAll('#options-panel .opt-btn').forEach(b=>b.classList.remove('active')); if(t==='clear') document.getElementById('btn-clear').classList.add('active'); else if(t==='rain') document.getElementById('btn-rain').classList.add('active'); else if(t==='snow') document.getElementById('btn-snow').classList.add('active'); }
+    let isDay=true;
+    function setDayNight(day){ isDay=day; if(day){ scene.background.setHex(0xaaccff); scene.fog.color.setHex(0xaaccff); ambientLight.intensity=0.7; sunLight.visible=true; moonLight.visible=false; sunMesh.visible=true; moonMesh.visible=false; stars.visible=false; document.getElementById('btn-day').classList.add('active'); document.getElementById('btn-night').classList.remove('active'); } else { scene.background.setHex(0x182430); scene.fog.color.setHex(0x1a2a3a); ambientLight.intensity=0.5; sunLight.visible=false; moonLight.visible=true; sunMesh.visible=false; moonMesh.visible=true; stars.visible=true; document.getElementById('btn-night').classList.add('active'); document.getElementById('btn-day').classList.remove('active'); } }
+    document.getElementById('btn-day').addEventListener('click',()=>setDayNight(true));
+    document.getElementById('btn-night').addEventListener('click',()=>setDayNight(false));
+    document.getElementById('btn-clear').addEventListener('click',()=>setWeather('clear'));
+    document.getElementById('btn-rain').addEventListener('click',()=>setWeather('rain'));
+    document.getElementById('btn-snow').addEventListener('click',()=>setWeather('snow'));
+    
+    const manualPanel=document.getElementById('manual-panel');
+    document.getElementById('manual-toggle-btn').addEventListener('click',()=>manualPanel.classList.add('open'));
+    document.getElementById('close-manual').addEventListener('click',()=>manualPanel.classList.remove('open'));
+    
+    let selectedChar='default';
+    document.querySelectorAll('.char-card').forEach(c=>c.addEventListener('click',()=>{ document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('selected')); c.classList.add('selected'); selectedChar=c.dataset.char; }));
+    document.querySelector('[data-char="default"]').classList.add('selected');
+    
+    const controls = new PointerLockControls(camera, document.body); controls.pointerSpeed=0.9;
+    let gameActive=false;
+    let playerBaseSpeed=11.0, playerJumpForce=10.5, swimSpeedFactor=0.65;
+    
+    document.getElementById('play-btn').addEventListener('click',()=>{ disclaimerOverlay.style.opacity='0'; disclaimerOverlay.style.visibility='hidden'; setTimeout(()=>{ charSelectOverlay.style.opacity='1'; charSelectOverlay.style.visibility='visible'; },400); });
+    document.getElementById('start-game-btn').addEventListener('click',()=>{ charSelectOverlay.style.opacity='0'; charSelectOverlay.style.visibility='hidden'; if(selectedChar==='speedy'){ playerBaseSpeed=15.0; playerJumpForce=11.5; swimSpeedFactor=0.7; } else if(selectedChar==='jumper'){ playerBaseSpeed=10.5; playerJumpForce=15.5; swimSpeedFactor=0.6; } else { playerBaseSpeed=12.0; playerJumpForce=10.5; swimSpeedFactor=0.65; } gameActive=true; controls.lock(); });
+    
+    renderer.domElement.addEventListener('click',()=>{ if(gameActive && !controls.isLocked) controls.lock(); });
+    controls.addEventListener('lock',()=>document.getElementById('controls-hint').style.opacity='0.3');
+    controls.addEventListener('unlock',()=>document.getElementById('controls-hint').style.opacity='1');
+    scene.add(controls.getObject());
+    
+    const PLAYER_WIDTH=0.55, PLAYER_HEIGHT=1.75;
+    const player={ speed:playerBaseSpeed, jumpForce:playerJumpForce, gravity:24.0, velocity:new THREE.Vector3(), onGround:false };
+    const keyState={ w:false,a:false,s:false,d:false,space:false };
+    
+    window.addEventListener('keydown',e=>{ if(!controls.isLocked||!gameActive) return; switch(e.code){ case'KeyW':keyState.w=true;e.preventDefault();break; case'KeyA':keyState.a=true;e.preventDefault();break; case'KeyS':keyState.s=true;e.preventDefault();break; case'KeyD':keyState.d=true;e.preventDefault();break; case'Space':keyState.space=true;e.preventDefault();break; case'Digit1':selectSlot(0);break; case'Digit2':selectSlot(1);break; case'Digit3':selectSlot(2);break; case'Digit4':selectSlot(3);break; case'Digit5':selectSlot(4);break; case'Digit6':selectSlot(5);break; case'Digit7':selectSlot(6);break; case'Enter':if(gameActive) performAction(); e.preventDefault(); break; } });
+    window.addEventListener('keyup',e=>{ if(!gameActive) return; switch(e.code){ case'KeyW':keyState.w=false;e.preventDefault();break; case'KeyA':keyState.a=false;e.preventDefault();break; case'KeyS':keyState.s=false;e.preventDefault();break; case'KeyD':keyState.d=false;e.preventDefault();break; case'Space':keyState.space=false;e.preventDefault();break; } });
+    
+    const worldW=200, worldD=200, worldH=80;
+    const blockMap=new Map();
+    const BLOCK={AIR:0,GRASS:1,DIRT:2,STONE:3,WOOD:4,GOLD:5,SAND:6,WATER:7};
+    const colors={1:0x7c9c3e,2:0x8b5e3c,3:0xaaaaaa,4:0x8b6b4d,5:0xf5c542,6:0xe0d68a,7:0x3f76e4};
+    let selected=BLOCK.GRASS; const blockTypes=[1,2,3,4,5,6,7];
+    const slots=document.querySelectorAll('.slot');
+    function selectSlot(i){ slots.forEach((s,idx)=>s.classList.toggle('selected',idx===i)); selected=blockTypes[i]; }
+    slots.forEach((s,i)=>s.addEventListener('click',()=>selectSlot(i)));
+    
+    let currentMode='break';
+    document.getElementById('mode-break').addEventListener('click',()=>{ currentMode='break'; document.getElementById('mode-break').classList.add('active'); document.getElementById('mode-create').classList.remove('active'); document.getElementById('mode-text').textContent='Break'; });
+    document.getElementById('mode-create').addEventListener('click',()=>{ currentMode='create'; document.getElementById('mode-create').classList.add('active'); document.getElementById('mode-break').classList.remove('active'); document.getElementById('mode-text').textContent='Create'; });
+    
+    renderer.domElement.addEventListener('mousedown',e=>{ if(!controls.isLocked||!gameActive) return; if(e.button===0){ e.preventDefault(); performAction(); } });
+    renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+    
+    const getKey=(x,y,z)=>`${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
+    function getBlock(x,y,z){ return blockMap.get(getKey(x,y,z))||0; }
+    function setBlock(x,y,z,type){ const k=getKey(x,y,z); if(type===0) blockMap.delete(k); else blockMap.set(k,type); }
+    
+    // Enhanced terrain with biomes
+    (function generate(){
+      blockMap.clear(); const hx=worldW/2, hz=worldD/2;
+      for(let x=-hx;x<hx;x++) for(let z=-hz;z<hz;z++){
+        const nx=x*0.05, nz=z*0.05; 
+        let h=16+Math.floor(7*Math.sin(nx)*Math.cos(nz)+5*Math.sin(nx*2.3)*Math.cos(nz*1.9)+4*Math.sin(nx*0.6)*Math.cos(nz*0.8)); 
+        // Desert biome
+        if(Math.abs(x+40)<25 && Math.abs(z+30)<25) h = 12 + Math.floor(3*Math.sin(nx*1.5)*Math.cos(nz*1.2));
+        // Forest biome (extra trees)
+        const isForest = (Math.abs(x-30)<20 && Math.abs(z-20)<20);
+        h=Math.max(6,Math.min(worldH-10,h));
+        for(let y=0;y<=h;y++){ 
+          let t; 
+          if(y===0) t=BLOCK.STONE; 
+          else if(y===h) {
+            if(Math.abs(x+40)<25 && Math.abs(z+30)<25) t=BLOCK.SAND;
+            else t=BLOCK.GRASS;
+          }
+          else if(y>h-5) t=BLOCK.DIRT; 
+          else t=(y<12&&Math.random()<0.015)?BLOCK.GOLD:BLOCK.STONE; 
+          setBlock(x,y,z,t); 
+        }
+        // Cave generation
+        if(h>18 && Math.random()<0.15) { for(let cy=h-4; cy>8; cy--) if(getBlock(x,cy,z)!==0 && Math.random()>0.3) setBlock(x,cy,z,0); }
+        // Water pond
+        if(Math.abs(x-20)<8 && Math.abs(z-15)<8 && h<20) { for(let wy=0;wy<=18;wy++) setBlock(x,wy,z,BLOCK.WATER); }
+        // Trees
+        if((isForest || (h>=10 && (x%14===3) && (z%14===5) && Math.random()>0.5)) && getBlock(x,h,z)===BLOCK.GRASS){
+          const ty=h+1; for(let dy=0;dy<5;dy++) setBlock(x,ty+dy,z,BLOCK.WOOD);
+          for(let lx=-2;lx<=2;lx++) for(let lz=-2;lz<=2;lz++) for(let ly=0;ly<2;ly++) if(Math.abs(lx)+Math.abs(lz)<=3&&getBlock(x+lx,ty+3+ly,z+lz)===0) setBlock(x+lx,ty+3+ly,z+lz,BLOCK.GRASS);
+        }
+      }
+    })();
+    
+    const blockGroup=new THREE.Group(); scene.add(blockGroup); let meshes=[];
+    function rebuildMesh(){ meshes.forEach(m=>blockGroup.remove(m)); meshes=[]; const pos={1:[],2:[],3:[],4:[],5:[],6:[],7:[]}; for(let [k,t] of blockMap) if(t){ const [x,y,z]=k.split(',').map(Number); pos[t].push({x,y,z}); } const geo=new THREE.BoxGeometry(1,1,1);
+      for(let t of[1,2,3,4,5,6,7]){ const arr=pos[t]; if(!arr.length) continue; const mat=new THREE.MeshStandardMaterial({color:colors[t],roughness:t===5?0.25:0.55,metalness:t===5?0.7:0,transparent:t===7,opacity:t===7?0.65:1}); const mesh=new THREE.InstancedMesh(geo,mat,arr.length); mesh.castShadow=t!==7; mesh.receiveShadow=true; const matrix=new THREE.Matrix4(); const color=new THREE.Color(); arr.forEach((p,i)=>{ matrix.setPosition(p.x,p.y,p.z); mesh.setMatrixAt(i,matrix); color.setHex(colors[t]); mesh.setColorAt(i,color); }); mesh.instanceMatrix.needsUpdate=true; mesh.instanceColor.needsUpdate=true; blockGroup.add(mesh); meshes.push(mesh); } }
+    rebuildMesh();
+    
+    const highlightBox=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01,1.01,1.01)),new THREE.LineBasicMaterial({color:0xffffff})); highlightBox.visible=false; scene.add(highlightBox);
+    const ghostMesh=new THREE.Mesh(new THREE.BoxGeometry(1.02,1.02,1.02),new THREE.MeshStandardMaterial({color:0xaaffaa,transparent:true,opacity:0.45})); ghostMesh.visible=false; scene.add(ghostMesh);
+    
+    function raycast(maxDist=9){
+      const start=camera.position; const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+      let ix=Math.floor(start.x), iy=Math.floor(start.y), iz=Math.floor(start.z);
+      const stepX=Math.sign(dir.x), stepY=Math.sign(dir.y), stepZ=Math.sign(dir.z);
+      const tDeltaX=stepX?Math.abs(1/dir.x):Infinity, tDeltaY=stepY?Math.abs(1/dir.y):Infinity, tDeltaZ=stepZ?Math.abs(1/dir.z):Infinity;
+      let tMaxX=stepX>0?(ix+1-start.x)/dir.x:(stepX<0?(ix-start.x)/dir.x:Infinity);
+      let tMaxY=stepY>0?(iy+1-start.y)/dir.y:(stepY<0?(iy-start.y)/dir.y:Infinity);
+      let tMaxZ=stepZ>0?(iz+1-start.z)/dir.z:(stepZ<0?(iz-start.z)/dir.z:Infinity);
+      let prevX=ix, prevY=iy, prevZ=iz, steps=0;
+      while(steps<maxDist*2){
+        const block=getBlock(ix,iy,iz); if(block!==0&&block!==BLOCK.WATER) return {blockPos:new THREE.Vector3(ix,iy,iz), facePos:new THREE.Vector3(prevX,prevY,prevZ)};
+        prevX=ix; prevY=iy; prevZ=iz;
+        if(tMaxX<tMaxY&&tMaxX<tMaxZ){ if(tMaxX>maxDist) break; ix+=stepX; tMaxX+=tDeltaX; }
+        else if(tMaxY<tMaxZ){ if(tMaxY>maxDist) break; iy+=stepY; tMaxY+=tDeltaY; }
+        else{ if(tMaxZ>maxDist) break; iz+=stepZ; tMaxZ+=tDeltaZ; }
+        if(Math.abs(ix)>worldW/2||Math.abs(iz)>worldD/2||iy<0||iy>worldH) break; steps++;
+      } return null;
+    }
+    
+    function performAction(){ const hit=raycast(9); if(!hit) return; if(currentMode==='break'&&hit.blockPos){ const {x,y,z}=hit.blockPos; if(getBlock(x,y,z)!==BLOCK.WATER){ setBlock(x,y,z,0); rebuildMesh(); } } else if(currentMode==='create'&&hit.facePos){ const {x,y,z}=hit.facePos; if(getBlock(x,y,z)===0){ setBlock(x,y,z,selected); rebuildMesh(); } } }
+    
+    const lookSpan=document.getElementById('look-block'), lookCoordSpan=document.getElementById('look-coord'), fpsSpan=document.getElementById('fps-value');
+    function updateUI(){ if(!gameActive) return; const hit=raycast(8); if(hit?.blockPos){ const t=getBlock(hit.blockPos.x,hit.blockPos.y,hit.blockPos.z); const names=['air','grass','dirt','stone','wood','gold','sand','water']; lookSpan.textContent=names[t]||'?'; lookCoordSpan.textContent=` (${hit.blockPos.x}, ${hit.blockPos.y}, ${hit.blockPos.z})`; highlightBox.position.copy(hit.blockPos); highlightBox.visible=true; if(currentMode==='create'&&hit.facePos){ const {x,y,z}=hit.facePos; if(getBlock(x,y,z)===0){ ghostMesh.position.set(x,y,z); ghostMesh.visible=true; ghostMesh.material.color.setHex(colors[selected]||0xcccccc); } else ghostMesh.visible=false; } else ghostMesh.visible=false; } else { lookSpan.textContent='air'; lookCoordSpan.textContent=''; highlightBox.visible=false; ghostMesh.visible=false; } }
+    
+    function collides(min,max){ for(let x=Math.floor(min.x);x<=Math.floor(max.x);x++) for(let y=Math.floor(min.y);y<=Math.floor(max.y);y++) for(let z=Math.floor(min.z);z<=Math.floor(max.z);z++){ const b=getBlock(x,y,z); if(b!==0&&b!==BLOCK.WATER) return true; } return false; }
+    function isInWater(pos){ return getBlock(Math.floor(pos.x),Math.floor(pos.y+0.5),Math.floor(pos.z))===BLOCK.WATER; }
+    
+    // ---------- ANIMALS (Cows, Chickens, Pigs, Sheep) ----------
+    const animals = [];
+    const animalGroup = new THREE.Group(); scene.add(animalGroup);
+    
+    function createCow(pos) {
+      const group = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({color: 0x8B5E3C, roughness:0.7});
+      const legMat = new THREE.MeshStandardMaterial({color: 0x5D3A1A});
+      const headMat = new THREE.MeshStandardMaterial({color: 0xA0522D});
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 0.9), bodyMat); body.position.y=0.45; body.castShadow=true; body.receiveShadow=true; group.add(body);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.6), headMat); head.position.set(0.9,0.7,0); head.castShadow=true; group.add(head);
+      const legPos = [[-0.4,0.2,0.4],[0.4,0.2,0.4],[-0.4,0.2,-0.4],[0.4,0.2,-0.4]];
+      legPos.forEach(p=>{ const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.5,0.3), legMat); leg.position.set(p[0],p[1],p[2]); leg.castShadow=true; leg.receiveShadow=true; group.add(leg); });
+      group.position.copy(pos);
+      group.userData = { type:'cow', vel:new THREE.Vector3(), targetDir:Math.random()*Math.PI*2, timer:0 };
+      return group;
+    }
+    function createChicken(pos) {
+      const group = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({color: 0xEEDD99});
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.7,0.5), bodyMat); body.position.y=0.35; body.castShadow=true; body.receiveShadow=true; group.add(body);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4), new THREE.MeshStandardMaterial({color:0xFFCC88})); head.position.set(0.5,0.5,0); head.castShadow=true; group.add(head);
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.3,0.15), new THREE.MeshStandardMaterial({color:0xCCAA55}));
+      const l1=leg.clone(); l1.position.set(-0.2,0.15,0.2); group.add(l1);
+      const l2=leg.clone(); l2.position.set(0.2,0.15,0.2); group.add(l2);
+      group.position.copy(pos);
+      group.userData = { type:'chicken', vel:new THREE.Vector3(), targetDir:Math.random()*Math.PI*2, timer:0 };
+      return group;
+    }
+    function createPig(pos) {
+      const group = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({color: 0xF0A0B0, roughness:0.8});
+      const legMat = new THREE.MeshStandardMaterial({color: 0xCC8888});
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 0.9), bodyMat); body.position.y=0.4; body.castShadow=true; body.receiveShadow=true; group.add(body);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.6,0.6), new THREE.MeshStandardMaterial({color:0xE090A0})); head.position.set(0.8,0.6,0); head.castShadow=true; group.add(head);
+      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.2,0.2), new THREE.MeshStandardMaterial({color:0xCC7777})); snout.position.set(1.1,0.5,0); group.add(snout);
+      const legPos = [[-0.4,0.15,0.4],[0.4,0.15,0.4],[-0.4,0.15,-0.4],[0.4,0.15,-0.4]];
+      legPos.forEach(p=>{ const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.3), legMat); leg.position.set(p[0],p[1],p[2]); leg.castShadow=true; leg.receiveShadow=true; group.add(leg); });
+      group.position.copy(pos);
+      group.userData = { type:'pig', vel:new THREE.Vector3(), targetDir:Math.random()*Math.PI*2, timer:0 };
+      return group;
+    }
+    function createSheep(pos) {
+      const group = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({color: 0xDDDDDD, roughness:0.9});
+      const legMat = new THREE.MeshStandardMaterial({color: 0x444444});
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.9, 0.9), bodyMat); body.position.y=0.45; body.castShadow=true; body.receiveShadow=true; group.add(body);
+      const wool = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 1.0), new THREE.MeshStandardMaterial({color:0xEEEEEE})); wool.position.y=0.8; wool.castShadow=true; group.add(wool);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.5,0.5), new THREE.MeshStandardMaterial({color:0x222222})); head.position.set(0.8,0.6,0); head.castShadow=true; group.add(head);
+      const legPos = [[-0.4,0.2,0.4],[0.4,0.2,0.4],[-0.4,0.2,-0.4],[0.4,0.2,-0.4]];
+      legPos.forEach(p=>{ const leg = new THREE.Mesh(new THREE.BoxGeometry(0.25,0.45,0.25), legMat); leg.position.set(p[0],p[1],p[2]); leg.castShadow=true; leg.receiveShadow=true; group.add(leg); });
+      group.position.copy(pos);
+      group.userData = { type:'sheep', vel:new THREE.Vector3(), targetDir:Math.random()*Math.PI*2, timer:0 };
+      return group;
+    }
+    
+    // Spawn more animals of various types
+    for(let i=0;i<22;i++) {
+      let attempts=0, placed=false;
+      while(!placed && attempts<100) {
+        const x = Math.floor(Math.random()*160-80);
+        const z = Math.floor(Math.random()*160-80);
+        for(let y=worldH-1; y>5; y--) {
+          if(getBlock(x,y,z)===BLOCK.GRASS && getBlock(x,y+1,z)===0) {
+            const pos = new THREE.Vector3(x+0.5, y+1, z+0.5);
+            let animal;
+            if(i<7) animal = createCow(pos);
+            else if(i<13) animal = createChicken(pos);
+            else if(i<18) animal = createPig(pos);
+            else animal = createSheep(pos);
+            animalGroup.add(animal);
+            animals.push(animal);
+            placed=true; break;
+          }
+        } attempts++;
+      }
+    }
+    
+    function updateAnimals(delta) {
+      const speed = 1.8;
+      for(let a of animals) {
+        const ud = a.userData;
+        ud.timer += delta;
+        if(ud.timer > 2.5 || a.position.y < -5) {
+          ud.targetDir = Math.random()*Math.PI*2;
+          ud.timer = 0;
+        }
+        const moveX = Math.cos(ud.targetDir)*speed*delta;
+        const moveZ = Math.sin(ud.targetDir)*speed*delta;
+        const newPos = a.position.clone().add({x:moveX, y:0, z:moveZ});
+        const foot = new THREE.Vector3(newPos.x, newPos.y, newPos.z);
+        if(getBlock(Math.floor(foot.x), Math.floor(foot.y), Math.floor(foot.z))===0 && 
+           getBlock(Math.floor(foot.x), Math.floor(foot.y+0.8), Math.floor(foot.z))===0) {
+          a.position.x = newPos.x;
+          a.position.z = newPos.z;
+        }
+        let groundY = a.position.y;
+        for(let y=Math.floor(a.position.y); y>0; y--) {
+          if(getBlock(Math.floor(a.position.x), y, Math.floor(a.position.z))!==0) { groundY = y+1; break; }
+        }
+        a.position.y = groundY;
+        // animation per type
+        if(ud.type==='cow') {
+          a.children[0].rotation.y = ud.targetDir;
+          a.children[1].position.x = 0.9; a.children[1].position.y = 0.7 + Math.sin(performance.now()*0.01)*0.05;
+        } else if(ud.type==='chicken') {
+          a.rotation.y = ud.targetDir;
+          a.position.y += Math.sin(performance.now()*0.02)*0.02;
+        } else if(ud.type==='pig') {
+          a.children[0].rotation.y = ud.targetDir;
+          a.children[1].position.y = 0.6 + Math.sin(performance.now()*0.008)*0.04;
+        } else if(ud.type==='sheep') {
+          a.children[0].rotation.y = ud.targetDir;
+          a.children[2].position.y = 0.6 + Math.sin(performance.now()*0.012)*0.03;
+        }
+      }
+      // hidden counter update
+      document.getElementById('animal-count').textContent = animals.length;
+    }
+    
+    const clock=new THREE.Clock(); let frameCount=0, fpsTime=0;
+    function gameLoop(){
+      const delta=Math.min(clock.getDelta(),0.022);
+      if(controls.isLocked && gameActive){
+        player.speed=playerBaseSpeed; player.jumpForce=playerJumpForce;
+        const inWater=isInWater(camera.position);
+        const forward=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion); forward.y=0; forward.normalize();
+        const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion); right.y=0; right.normalize();
+        const move=new THREE.Vector3(0,0,0);
+        if(keyState.w) move.add(forward); if(keyState.s) move.sub(forward); if(keyState.a) move.sub(right); if(keyState.d) move.add(right);
+        if(move.lengthSq()>0) move.normalize();
+        move.multiplyScalar(player.speed * delta * (inWater?swimSpeedFactor:1.0));
+        
+        if(inWater){ player.velocity.y += -1.5*delta; if(keyState.space) player.velocity.y=6.5; }
+        else { player.velocity.y -= player.gravity*delta; if(keyState.space && player.onGround){ player.velocity.y=player.jumpForce; player.onGround=false; } }
+        
+        const halfW=PLAYER_WIDTH/2, halfH=PLAYER_HEIGHT/2;
+        let newPos=camera.position.clone();
+        newPos.x+=move.x; let box={ min:new THREE.Vector3(newPos.x-halfW, newPos.y-halfH, newPos.z-halfW), max:new THREE.Vector3(newPos.x+halfW, newPos.y+halfH, newPos.z+halfW) };
+        if(!collides(box.min,box.max)) camera.position.x=newPos.x;
+        newPos=camera.position.clone(); newPos.z+=move.z; box={ min:new THREE.Vector3(newPos.x-halfW, newPos.y-halfH, newPos.z-halfW), max:new THREE.Vector3(newPos.x+halfW, newPos.y+halfH, newPos.z+halfW) };
+        if(!collides(box.min,box.max)) camera.position.z=newPos.z;
+        newPos=camera.position.clone(); newPos.y+=player.velocity.y*delta; box={ min:new THREE.Vector3(newPos.x-halfW, newPos.y-halfH, newPos.z-halfW), max:new THREE.Vector3(newPos.x+halfW, newPos.y+halfH, newPos.z+halfW) };
+        if(!collides(box.min,box.max)){ camera.position.y=newPos.y; player.onGround=false; } else { if(player.velocity.y<0) player.onGround=true; player.velocity.y=0; }
+        
+        camera.position.x=Math.max(-worldW/2+1.5, Math.min(worldW/2-1.5, camera.position.x));
+        camera.position.z=Math.max(-worldD/2+1.5, Math.min(worldD/2-1.5, camera.position.z));
+        camera.position.y=Math.max(2.2, Math.min(worldH-2.5, camera.position.y));
+        updateUI();
+      }
+      updateAnimals(delta);
+      if(rainParticles){ const p=rainParticles.geometry.attributes.position.array; for(let i=1;i<p.length;i+=3){ p[i]-=0.22; if(p[i]<-10) p[i]=65; } rainParticles.geometry.attributes.position.needsUpdate=true; }
+      if(snowParticles){ const p=snowParticles.geometry.attributes.position.array; for(let i=1;i<p.length;i+=3){ p[i]-=0.07; if(p[i]<-10) p[i]=65; } snowParticles.geometry.attributes.position.needsUpdate=true; }
+      renderer.render(scene,camera);
+      frameCount++; fpsTime+=delta; if(fpsTime>=0.2){ fpsSpan.textContent=Math.round(frameCount/fpsTime); frameCount=0; fpsTime=0; }
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+    
+    window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+    const cloudMat=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:0.5});
+    for(let i=0;i<12;i++){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.SphereGeometry(1.4,5),cloudMat)); const p2=new THREE.Mesh(new THREE.SphereGeometry(1.0,5),cloudMat); p2.position.set(1.6,0.2,0.5); g.add(p2); g.position.set((i%4-1.5)*50,30+Math.sin(i)*7,(Math.floor(i/4)-1)*50); scene.add(g); }
+  </script>
+</body>
+</html>
